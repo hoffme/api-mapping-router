@@ -1,22 +1,22 @@
 # API Mapping Router
-Esta libreria tiene como objetivo ejecutar funciones 
-enviando parametros y obtener el resultado, atravez 
-de un tunel que transfiera texto.
+This library has the objective of executing functions 
+sending parameters and obtaining the result, through a 
+tunnel that transfers text.
 
-Ejemplos utiles en donde usar:
+Useful examples where to use:
 
-- NextJs para ejecutar funciones del backend desde 
-el cliente
-- Monorepo en donde se pueda importar archivos de back
-en el front.
+- NextJs to execute backend functions from the client
+- Monorepo where you can import files from back to the front.
 
-## Como Implementar 
+## How to Implement?
 
 ### Backend
-crear archivo map.ts en donde se crea el mapa de funciones
+create map.ts file where the function map is created
 executables.
 
 ```ts
+import { CreateMap } from "api-mapping-router/map";
+
 export const map = CreateMap({
     auth: {
         signIn: async (params: AuthSignInParams): Promise<User> => {
@@ -41,18 +41,19 @@ export const map = CreateMap({
 export type Map = typeof map;
 ```
 
-ya con el mapa de funciones creado por ejemplo en NextJs
-hay que crear el archivo por Ej: /pages/api/index.ts 
-para ejecutar las funciones mediante HTTP.
+already with the function map created for example in NextJs
+you have to create the file for example: /pages/api/index.ts
+to run the functions over HTTP.
 
 ```ts
 import { NextApiHandler } from "next";
+import { CreateServer } from "api-mapping-router/server";
 
-import { map } from '../server/map';
+import { map } from 'src/server/map';
 
 const server = CreateServer(map);
 
-const apiHandler = async (req, res) => {
+const handler: NextApiHandler = async (req, res) => {
     if (req.method !== "POST") {
         return res.status(404).end();
     }
@@ -70,11 +71,13 @@ export default handler;
 
 ## Frontend
 
-en el cliente se crea la en la carpeta services el archivo
-index.ts que llama a la api del server.
+on the client the file is created in the services folder
+index.ts which calls the server api.
 
 ```ts
-import type { Map } from '../server/map';
+import { CreateClient } from "api-mapping-router/client";
+
+import type { Map } from 'src/server/map';
 
 export const client = CreateClient<typeof appMap>({
     tunnel: async (data: string) => {
@@ -84,17 +87,17 @@ export const client = CreateClient<typeof appMap>({
             body: data
         });
 
-	    return await response.text();
+        return await response.text();
     }
 });
 ```
 
-ahora desde el front se puede llamar a las funciones mediante
-el `client`. Lo gran ventaja de esto es que esta completamente
-tipado el objeto de map en el cliente.
+functions can now be called from the front using the `client`. 
+The great advantage of this is that it is completely
+typed the map object on the client.
 
 ```ts
-import { client } from './services';
+import { client } from 'src/services';
 
 client.methods.auth.signIn.exec(...params)
     .then((result) => {

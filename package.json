@@ -28,7 +28,6 @@
     }
   },
   "scripts": {
-    "dev": "ts-node-dev src/index.ts",
     "test": "jest --config jestconfig.json",
     "build": "tsc",
     "lint": "npx eslint src",
