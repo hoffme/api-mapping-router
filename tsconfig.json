@@ -1,0 +1,12 @@
+{
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "lib", "test"],
+  "compilerOptions": {
+    "lib": ["ES2021"],
+    "target": "es5",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./lib",
+    "strict": true
+  }
+}
