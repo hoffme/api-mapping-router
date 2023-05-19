@@ -11,14 +11,80 @@ Useful examples where to use:
 ## How to Implement?
 
 ### Backend
+create context.ts file with context type
+
+```ts
+export interface Context {
+	req: NextApiRequest
+}
+```
+
+create a resolver function in any file
+
+```ts
+import { CreateResolver } from "api-mapping-router/resolver";
+
+// Define the resolver types
+interface AuthUpdateProfileParams extends JSONObject {
+	firstName?: string;
+	lastName?: string;
+}
+
+interface AuthUpdateProfileResult extends JSONObject {
+	firstName: string;
+	lastName: string;
+}
+
+// Create a resolver
+export const AuthUpdateProfileResolver = CreateResolver<
+	AuthUpdateProfileParams,
+	AuthUpdateProfileResult,
+	Context
+>({
+	// Validations params or undefined
+	params: {
+		parse: (v) => {
+			if (typeof v !== 'object' || v === null) {
+				throw new Error('invalid param type');
+			}
+			if ('firstName' in v && typeof v['firstName'] !== 'string') {
+				throw new Error('invalid property firstName');
+			}
+			if ('lastName' in v && typeof v['lastName'] !== 'string') {
+				throw new Error('invalid property lastName');
+			}
+			return v as AuthUpdateProfileParams;
+		}
+	},
+	// Middlewares or undefined
+	middlewares: [
+		async (props) => {
+			if (!props.ctx.req.headers.autenticated) {
+				throw new Error('unauthorized');
+			}
+		}
+	],
+	// Feature method
+	method: async (props) => {
+		const claims = JSON.parse(props.ctx.auth.token || '');
+		return { ...claims, ...props.params };
+	}
+});
+```
+
 create map.ts file where the function map is created
 executables.
 
 ```ts
 import { CreateMap } from "api-mapping-router/map";
 
+import { AuthUpdateProfileResolver } from './resolver.ts';
+
 export const map = CreateMap({
     auth: {
+        profile: {
+			update: AuthUpdateProfileResolver
+		},
         signIn: async (params: AuthSignInParams): Promise<User> => {
             ...
         }, 
@@ -59,10 +125,12 @@ const handler: NextApiHandler = async (req, res) => {
     }
 
     try {
-        const result = await server.tunnel.execute(data);
+        const result = await server.tunnel.execute(data, { req });
         res.status(200).send(result);
-    } catch (error) {
-        res.status(400).send(JSON.stringify({ error }));
+    } catch (e) {
+        res.status(400).send(JSON.stringify({
+            error: e instanceof Error ? e.message : 'unknow error'
+        }));
     }
 };
 
@@ -82,7 +150,10 @@ import type { Map } from 'src/server/map';
 export const client = CreateClient<typeof appMap>({
     tunnel: async (data: string) => {
         const response = await fetch('/api', {
-            headers: { 'Content-Type': 'text/plain' },
+            headers: {
+                'Content-Type': 'text/plain',
+                'Autenticated': `Basic ${window.localStorage.get('token')}`
+            },
             method: 'POST',
             body: data
         });

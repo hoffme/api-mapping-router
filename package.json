@@ -1,6 +1,6 @@
 {
   "name": "api-mapping-router",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "author": "Juan Ignacio Coronel",
   "license": "MIT",
   "main": "lib/index.js",

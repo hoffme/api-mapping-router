@@ -1,9 +1,9 @@
 import { JSONValue } from './json';
+import { Context } from './context';
+import { Resolver } from './resolver';
 
-export type Resolver<P extends JSONValue[], R extends JSONValue> = (...params: P) => Promise<R>;
-
-export interface ResolverMap {
-	[K: string]: ResolverMap | Resolver<any, any>;
+export interface ResolverMap<D extends Context = Context> {
+	[K: string]: ResolverMap<D> | Resolver<JSONValue, JSONValue, D>;
 }
 
-export const CreateMap = <M extends ResolverMap>(map: M) => map;
+export const CreateMap = <M extends ResolverMap<Context>>(map: M) => map;

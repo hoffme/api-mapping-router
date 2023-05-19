@@ -1,10 +1,13 @@
-import { Resolver, ResolverMap } from './map';
+import { JSONValue } from './json';
+import { Context } from './context';
+import { ResolverMap } from './map';
+import { Resolver } from './resolver';
 
 export type ClientMethodsMap<R extends ResolverMap> = {
 	[K in keyof R]: R[K] extends ResolverMap
 		? ClientMethodsMap<R[K]>
-		: R[K] extends Resolver<any, any>
-		? { exec: R[K] }
+		: R[K] extends Resolver<JSONValue, JSONValue, Context>
+		? { exec: (params: R[K]['_type_props']) => Promise<R[K]['_type_result']> }
 		: never;
 };
 
@@ -18,13 +21,13 @@ const buildClientMethodMap = <M extends ResolverMap>(
 	tunnel: (params: string) => Promise<string>,
 	path: string[] = []
 ): ClientMethodsMap<M> => {
-	return new Proxy<ClientMethodsMap<M>>({} as ClientMethodsMap<M>, {
-		get<K extends keyof ClientMethodsMap<M>>(
-			target: ClientMethodsMap<M>,
-			p: string | symbol
+	return new Proxy({} as ClientMethodsMap<M>, {
+		get<K extends keyof ClientMethodsMap<M> & string>(
+			_: unknown,
+			property: K
 		): ClientMethodsMap<M>[K] {
-			if (p === 'exec') {
-				const fn = async (...params: any[]) => {
+			if (property === 'exec') {
+				const fn = async (params: unknown) => {
 					const metadata = { path, params };
 
 					const response = await tunnel(JSON.stringify(metadata));
@@ -40,7 +43,7 @@ const buildClientMethodMap = <M extends ResolverMap>(
 				return fn as unknown as ClientMethodsMap<M>[K];
 			}
 
-			return buildClientMethodMap(tunnel, [...path, p as string]) as ClientMethodsMap<M>[K];
+			return buildClientMethodMap(tunnel, [...path, property]) as ClientMethodsMap<M>[K];
 		}
 	});
 };
